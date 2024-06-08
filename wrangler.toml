@@ -1,6 +1,9 @@
 name = "community-in-your-pocket"
 compatibility_date = "2023-12-01"
 
+# Necessary because of pgvector/drizzle-kit
+node_compat = true
+
 # [vars]
 # MY_VAR = "my-variable"
 

@@ -25,7 +25,7 @@ neonctl auth
 #
 # > *skip this* if you already created a project,
 # > and grab the DATABASE_URL from your dashboard
-PROJECT_NAME=my-project
+PROJECT_NAME=community-in-pocket
 neonctl projects create --name $PROJECT_NAME --set-context
 
 # Set project id because the call to `set-context` below needs it
