@@ -1,0 +1,1 @@
+ALTER TABLE "knowledge" ALTER COLUMN "type" SET NOT NULL;

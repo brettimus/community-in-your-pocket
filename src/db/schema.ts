@@ -14,7 +14,7 @@ export const knowledgeType = pgEnum('knowledgeType', ['github', 'discord', 'docs
 export const knowledge = pgTable('knowledge', {
   id: serial('id').primaryKey(),
   content: text('content').notNull(),
-  type: knowledgeType('type'),
+  type: knowledgeType('type').notNull(),
   link: text('link'),
   embedding: vector('embedding', { dimensions: 1536 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
