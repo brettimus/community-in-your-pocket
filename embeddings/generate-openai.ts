@@ -24,11 +24,48 @@ const db = drizzle(sql, { schema });
 // Main
 
 async function main() {
-  await testCreateDiscordEmbeddings();
-  await testCreateGitHubEmbeddings();
+  // await testCreateDiscordEmbeddings();
+  // await testCreateGitHubEmbeddings();
+  const start = Date.now();
+  try {
+    await createGitHubEmbeddings();
+  } catch (error) {
+    console.log("Failed to create GitHub embeddings", error);
+  }
+  const endGitHub = Date.now();
+  console.log(`GitHub Took ${endGitHub - start}ms`);
+  const startDiscord = Date.now();
+  try {
+    await createDiscordEmbeddings();
+  } catch (error) {
+    console.log("Failed to create Discord embeddings", error);
+  }
+  const end = Date.now();
+
+  console.log(`GitHub Took ${endGitHub - start}ms`);
+  console.log(`Discord Took ${end - startDiscord}ms`);
+  console.log(`All embeddings Took ${end - start}ms`);
 }
 
 main();
+
+// Main guys
+
+async function createGitHubEmbeddings() {
+  const issues = prepareGitHubIssues();
+
+  for (const issue of issues) {
+    await createKnowledge(issue);
+  }
+}
+
+async function createDiscordEmbeddings() {
+  const messages = prepareDiscordMessages();
+
+  for (const message of messages) {
+    await createKnowledge(message);
+  }
+}
 
 // Helpers
 
@@ -85,12 +122,7 @@ async function createEmbedding(input: string) {
     input,
     encoding_format: "float",
   });
-
-  console.log(embedding);
   const output = embedding.data[0].embedding;
-
-  console.log(output);
-
   return output;
 }
 
@@ -103,12 +135,16 @@ function saveEmbedding(issueContent: string, knowledgeType: "github" | "discord"
   })
 }
 
-async function createKnowledge(datum: KnowledgeDatum) {
+async function createKnowledge(datum: KnowledgeDatum, shouldLog = false) {
   const { content, link, type: knowledgeType } = datum;
   const embedding = await createEmbedding(content);
-  logKnowledge(datum, embedding);
+  if (shouldLog) {
+    logKnowledge(datum, embedding);
+  }
   const saveResult = await saveEmbedding(content, knowledgeType, link, embedding);
-  console.log("Saved!", saveResult);
+  if (shouldLog) {
+    console.log("Saved!", saveResult);
+  }
   return saveResult;
 }
 
@@ -131,7 +167,7 @@ async function testCreateGitHubEmbeddings() {
   const testSlice = issues.slice(0, 10);
 
   for (const issue of testSlice) {
-    await createKnowledge(issue);
+    await createKnowledge(issue, true);
   }
 }
 
@@ -140,6 +176,6 @@ async function testCreateDiscordEmbeddings() {
   const testSlice = messages.slice(0, 10);
 
   for (const message of testSlice) {
-    await createKnowledge(message);
+    await createKnowledge(message, true);
   }
 }
