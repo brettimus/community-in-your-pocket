@@ -5,6 +5,8 @@ import { neon } from "@neondatabase/serverless";
 import { drizzle } from 'drizzle-orm/neon-http';
 import * as schema from '../src/db/schema';
 
+type KnowledgeDatum = { content: string, link: string, type: "github" | "discord" }
+
 config({ path: '.dev.vars' });
 
 if (!process.env.OPENAI_API_KEY) {
@@ -19,13 +21,61 @@ const { knowledge } = schema;
 const sql = neon(process.env.DATABASE_URL);
 const db = drizzle(sql, { schema });
 
+// Main
+
+async function main() {
+  await testCreateDiscordEmbeddings();
+  await testCreateGitHubEmbeddings();
+}
+
+main();
+
+// Helpers
+
 function readHonoIssues() {
   const issues = JSON.parse(fs.readFileSync('data/honojs-hono.json', 'utf8'));
   return issues;
 }
 
+function transformIssue(issue: { title: string, body: string, html_url: string }) {
+  const link = issue.html_url;
+  const content = `# ${issue.title}\n${issue.body}`;
+
+  return {
+    content,
+    link,
+    type: "github",
+  }
+}
+
+function prepareGitHubIssues() {
+  const issues = readHonoIssues();
+  return issues.map(transformIssue) // as { content: string, link: string, type: "github" }[];
+}
+
+function readDiscordMessages() {
+  const discordExport = JSON.parse(fs.readFileSync('data/hono-help-quick-questions.json', 'utf8'));
+  const channelId = discordExport.channel.id;
+  const messages = discordExport.messages;
+  const basicMessages = messages.filter(message => message?.type === "Default");
+  const guildId = discordExport.guild.id;
+  return { channelId, guildId, basicMessages };
+}
+
+function transformDiscordMessage({ channelId, guildId, }: { channelId: string, guildId: string }, message: { id: string; content: string }) {
+  return {
+    link: `https://discord.com/channels/${guildId}/${channelId}/${message.id}`,
+    content: message.content,
+    type: "discord",
+  }
+}
+
+function prepareDiscordMessages() {
+  const { channelId, guildId, basicMessages } = readDiscordMessages();
+  return basicMessages.map(m => transformDiscordMessage({channelId, guildId}, m)) as Array<{ content: string; link: string; type: "discord" }>;
+}
+
 async function createEmbedding(input: string) {
-  // 
   const openai = new OpenAI();
   const embedding = await openai.embeddings.create({
     // length for small model: 1536
@@ -44,36 +94,52 @@ async function createEmbedding(input: string) {
   return output;
 }
 
-async function testCreateGitHubEmbeddings() {
-  const issues = readHonoIssues();
-  const testSlice = issues.slice(0, 10);
-
-  for (const issue of testSlice) {
-    const issueContent = transformIssue(issue);
-    const embedding = await createEmbedding(issueContent);
-    const { url } = issue;
-    console.log(`
-Issue: ${url}
-Content: ${issueContent.slice(0, 20)}...
-Embedding: ${embedding.slice(0, 5).join(', ')}...
-===========================
-    `.trim());
-    const saveResult = await saveEmbedding(issueContent, "github", issue.html_url, embedding);
-    console.log("Saved!", saveResult);
-  }
-}
-
-function transformIssue(issue: { title: string, body: string }) {
-  return `# ${issue.title}\n${issue.body}`;
-}
-
-function saveEmbedding(issueContent: string, contentType: "github" | "discord", link: string, embedding: number[]) {
+function saveEmbedding(issueContent: string, knowledgeType: "github" | "discord", link: string, embedding: number[]) {
   return db.insert(knowledge).values({
     content: issueContent,
     embedding,
-    type: contentType,
+    type: knowledgeType,
     link,
   })
 }
 
-testCreateGitHubEmbeddings();
+async function createKnowledge(datum: KnowledgeDatum) {
+  const { content, link, type: knowledgeType } = datum;
+  const embedding = await createEmbedding(content);
+  logKnowledge(datum, embedding);
+  const saveResult = await saveEmbedding(content, knowledgeType, link, embedding);
+  console.log("Saved!", saveResult);
+  return saveResult;
+}
+
+function logKnowledge(datum: KnowledgeDatum, embedding: Array<number>) {
+  const { content, link, type: knowledgeType } = datum;
+  console.log(`
+Source: ${knowledgeType}
+Issue URL: ${link}
+Content: ${content.slice(0, 20)}...
+Embedding: ${embedding.slice(0, 5).join(', ')}...
+===========================
+    `.trim());
+}
+
+
+// Quick Tests
+
+async function testCreateGitHubEmbeddings() {
+  const issues = prepareGitHubIssues();
+  const testSlice = issues.slice(0, 10);
+
+  for (const issue of testSlice) {
+    await createKnowledge(issue);
+  }
+}
+
+async function testCreateDiscordEmbeddings() {
+  const messages = prepareDiscordMessages();
+  const testSlice = messages.slice(0, 10);
+
+  for (const message of testSlice) {
+    await createKnowledge(message);
+  }
+}

@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { neon } from '@neondatabase/serverless';
-import { cosineDistance, desc, gt, sql as magicSql } from 'drizzle-orm'
+import { eq, cosineDistance, desc, gt, sql as magicSql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/neon-http';
 import { users, knowledge } from './db/schema';
 import { createEmbedding } from './embeddings';
@@ -31,6 +31,24 @@ app.get('/api/knowledge', async (c) => {
   const db = drizzle(sql);
 
   const results = await db.select().from(knowledge);
+
+  return c.json(results)
+})
+
+app.get('/api/knowledge/discord', async (c) => {
+  const sql = neon(c.env.DATABASE_URL)
+  const db = drizzle(sql);
+
+  const results = await db.select().from(knowledge).where(eq(knowledge.type, 'discord'));
+
+  return c.json(results)
+})
+
+app.get('/api/knowledge/github', async (c) => {
+  const sql = neon(c.env.DATABASE_URL)
+  const db = drizzle(sql);
+
+  const results = await db.select().from(knowledge).where(eq(knowledge.type, 'github'));
 
   return c.json(results)
 })
