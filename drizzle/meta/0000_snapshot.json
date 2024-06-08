@@ -1,7 +1,7 @@
 {
-  "id": "33fb8560-99c0-4f78-9003-08f002d39152",
+  "id": "56bdee7f-136c-4729-a018-f93d937fa8f1",
   "prevId": "00000000-0000-0000-0000-000000000000",
-  "version": "6",
+  "version": "7",
   "dialect": "postgresql",
   "tables": {
     "public.knowledge": {

@@ -1,5 +1,4 @@
-import { pgTable, serial, text, jsonb, timestamp, pgEnum } from 'drizzle-orm/pg-core';
-import { vector } from 'pgvector/drizzle-orm';
+import { pgTable, serial, text, jsonb, timestamp, pgEnum, vector } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),

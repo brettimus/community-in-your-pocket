@@ -3,14 +3,13 @@ DO $$ BEGIN
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
-
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "knowledge" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"content" text NOT NULL,
 	"type" "knowledgeType",
 	"link" text,
-	"embedding" VECTOR(1536),
+	"embedding" vector(1536),
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
