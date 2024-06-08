@@ -5,7 +5,7 @@ import { drizzle } from 'drizzle-orm/neon-http';
 import { users, knowledge } from './db/schema';
 import { createEmbedding } from './embeddings';
 import OpenAI from 'openai';
-import { Layout } from './component';
+import { Layout, SearchResults } from './component';
 
 type Bindings = {
   OPENAI_API_KEY: string;
@@ -71,22 +71,7 @@ app.get('/knowledge/search', async (c) => {
           </form>
         </div>
 
-        <div className="space-y-6">
-          {results.map((result) => (
-            <div key={result.id} className="p-4 border rounded-lg shadow-sm">
-              <h3 className="text-xl font-semibold mb-2">{result.type}</h3>
-              <p className="mb-4">{result.content}</p>
-              <a
-                href={result.link ?? "#"}
-                target="_blank"
-                rel="noreferrer"
-                className="text-blue-500 hover:underline"
-              >
-                Read more
-              </a>
-            </div>
-          ))}
-        </div>
+        <SearchResults results={results} />
       </div>
     </Layout>
   )
@@ -100,7 +85,7 @@ app.get('/knowledge', async (c) => {
     content: knowledge.content,
     type: knowledge.type,
     link: knowledge.link,
-  }).from(knowledge);
+  }).from(knowledge).limit(100);
 
   return c.html(
     <Layout>
@@ -125,22 +110,7 @@ app.get('/knowledge', async (c) => {
           </form>
         </div>
 
-        <div className="space-y-6">
-          {results.map((result) => (
-            <div key={result.id} className="p-4 border rounded-lg shadow-sm">
-              <h3 className="text-xl font-semibold mb-2">{result.type}</h3>
-              <p className="mb-4">{result.content}</p>
-              <a
-                href={result.link ?? "#"}
-                target="_blank"
-                rel="noreferrer"
-                className="text-blue-500 hover:underline"
-              >
-                Read more
-              </a>
-            </div>
-          ))}
-        </div>
+        <SearchResults results={results} />
       </div>
     </Layout>
   )
