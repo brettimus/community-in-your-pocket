@@ -23,12 +23,22 @@ const db = drizzle(sql, { schema });
 
 // Main
 
+const githubHonoIssues = 'data/honojs-hono.json';
+const githubHonoMiddlewareIssues = 'data/honojs-middleware.json';
+
+const discordHonoQuickQuestionsApril = 'data/hono-help-quick-questions-april.json';
+const discordHonoQuickQuestionsMay = 'data/hono-help-quick-questions-may.json';
+
+
 async function main() {
-  // await testCreateDiscordEmbeddings();
-  // await testCreateGitHubEmbeddings();
+  // await testCreateDiscordEmbeddings(discordHonoQuickQuestionsMay);
+  // await testCreateGitHubEmbeddings(githubHonoIssues);
+
+
+
   const start = Date.now();
   try {
-    await createGitHubEmbeddings();
+    await createGitHubEmbeddings(githubHonoMiddlewareIssues);
   } catch (error) {
     console.log("Failed to create GitHub embeddings", error);
   }
@@ -36,7 +46,7 @@ async function main() {
   console.log(`GitHub Took ${endGitHub - start}ms`);
   const startDiscord = Date.now();
   try {
-    await createDiscordEmbeddings();
+    await createDiscordEmbeddings(discordHonoQuickQuestionsApril);
   } catch (error) {
     console.log("Failed to create Discord embeddings", error);
   }
@@ -51,16 +61,25 @@ main();
 
 // Main guys
 
-async function createGitHubEmbeddings() {
-  const issues = prepareGitHubIssues();
+async function createGitHubEmbeddings(filename?: string) {
+  if (!filename) {
+    console.log("No github filename provided, skipping GitHub");
+    return;
+  }
+  const issues = prepareGitHubIssues(filename);
 
   for (const issue of issues) {
     await createKnowledge(issue);
   }
 }
 
-async function createDiscordEmbeddings() {
-  const messages = prepareDiscordMessages();
+async function createDiscordEmbeddings(filename?: string) {
+  if (!filename) {
+    console.log("No discord filename provided, skipping Discord");
+    return;
+  }
+
+  const messages = prepareDiscordMessages(filename);
 
   for (const message of messages) {
     await createKnowledge(message);
@@ -69,8 +88,8 @@ async function createDiscordEmbeddings() {
 
 // Helpers
 
-function readHonoIssues() {
-  const issues = JSON.parse(fs.readFileSync('data/honojs-hono.json', 'utf8'));
+function readHonoIssues(filename: string) {
+  const issues = JSON.parse(fs.readFileSync(filename, 'utf8'));
   return issues;
 }
 
@@ -85,13 +104,13 @@ function transformIssue(issue: { title: string, body: string, html_url: string }
   }
 }
 
-function prepareGitHubIssues() {
-  const issues = readHonoIssues();
+function prepareGitHubIssues(filename: string) {
+  const issues = readHonoIssues(filename);
   return issues.map(transformIssue) // as { content: string, link: string, type: "github" }[];
 }
 
-function readDiscordMessages() {
-  const discordExport = JSON.parse(fs.readFileSync('data/hono-help-quick-questions.json', 'utf8'));
+function readDiscordMessages(filename: string) {
+  const discordExport = JSON.parse(fs.readFileSync(filename, 'utf8'));
   const channelId = discordExport.channel.id;
   const messages = discordExport.messages;
   const basicMessages = messages.filter(message => message?.type === "Default");
@@ -107,8 +126,8 @@ function transformDiscordMessage({ channelId, guildId, }: { channelId: string, g
   }
 }
 
-function prepareDiscordMessages() {
-  const { channelId, guildId, basicMessages } = readDiscordMessages();
+function prepareDiscordMessages(filename: string) {
+  const { channelId, guildId, basicMessages } = readDiscordMessages(filename);
   return basicMessages.map(m => transformDiscordMessage({channelId, guildId}, m)) as Array<{ content: string; link: string; type: "discord" }>;
 }
 
@@ -162,8 +181,8 @@ Embedding: ${embedding.slice(0, 5).join(', ')}...
 
 // Quick Tests
 
-async function testCreateGitHubEmbeddings() {
-  const issues = prepareGitHubIssues();
+async function testCreateGitHubEmbeddings(filename: string) {
+  const issues = prepareGitHubIssues(filename);
   const testSlice = issues.slice(0, 10);
 
   for (const issue of testSlice) {
@@ -171,8 +190,8 @@ async function testCreateGitHubEmbeddings() {
   }
 }
 
-async function testCreateDiscordEmbeddings() {
-  const messages = prepareDiscordMessages();
+async function testCreateDiscordEmbeddings(filename: string) {
+  const messages = prepareDiscordMessages(filename);
   const testSlice = messages.slice(0, 10);
 
   for (const message of testSlice) {
