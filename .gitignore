@@ -1,6 +1,9 @@
 # prod
 dist/
 
+# data files (big)
+data/*.json
+
 # dev
 .yarn/
 !.yarn/releases
