@@ -5,7 +5,7 @@ import { drizzle } from 'drizzle-orm/neon-http';
 import { users, knowledge } from './db/schema';
 import { createEmbedding } from './embeddings';
 import OpenAI from 'openai';
-import { Layout, SearchResults } from './component';
+import { Layout, SearchForm, SearchResults } from './component';
 
 type Bindings = {
   OPENAI_API_KEY: string;
@@ -50,25 +50,12 @@ app.get('/knowledge/search', async (c) => {
 
   return c.html(
     <Layout>
-      <div className="max-w-4xl mx-auto p-4">
-        <h1 className="text-4xl font-bold mb-6">Knowledge</h1>
+      <div className="max-w-6xl mx-auto p-4">
+        <h1 className="text-3xl font-bold mb-6">Knowledge</h1>
 
         <div className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Search</h2>
-          <form method="get" action="/knowledge/search" className="flex items-center space-x-4">
-            <input
-              type="text"
-              name="query"
-              className="flex-grow px-4 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300"
-              placeholder="Enter your query"
-            />
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors"
-            >
-              Search
-            </button>
-          </form>
+          <SearchForm />
         </div>
 
         <SearchResults results={results} />
@@ -89,25 +76,12 @@ app.get('/knowledge', async (c) => {
 
   return c.html(
     <Layout>
-      <div className="max-w-4xl mx-auto p-4">
-        <h1 className="text-4xl font-bold mb-6">Knowledge</h1>
+      <div className="max-w-6xl mx-auto p-4">
+        <h1 className="text-3xl font-bold mb-6">Knowledge</h1>
 
         <div className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Search</h2>
-          <form method="get" action="/knowledge/search" className="flex items-center space-x-4">
-            <input
-              type="text"
-              name="query"
-              className="flex-grow px-4 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300"
-              placeholder="Enter your query"
-            />
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors"
-            >
-              Search
-            </button>
-          </form>
+          <SearchForm />
         </div>
 
         <SearchResults results={results} />
