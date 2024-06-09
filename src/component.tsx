@@ -6,9 +6,9 @@ const renderer = new marked.Renderer();
 renderer.heading = (text, level) => {
   const baseClass = 'font-semibold mb-2 text-gray-800';
   const sizes = {
-    1: 'text-2xl mt-2',
-    2: 'text-xl mt-1',
-    3: 'text-lg mt-1',
+    1: 'text-xl mt-1',
+    2: 'text-lg mt-1',
+    3: 'text-lg mt-1 text-gray-500',
     4: 'text-base',
     5: 'text-base',
     6: 'text-base',
@@ -60,9 +60,10 @@ type SearchResult = {
   content: string;
   type: "github" | "discord" | "docs" | null;
   link: string | null;
+  similarity?: number;
 }
 
-export const SearchForm = () => (
+export const SearchForm = ({ similarity, query }: { query?: string; similarity?: number }) => (
   <form method="get" action="/knowledge/search" className="flex items-center space-x-4">
     <label htmlFor="similarity" className="text-lg font-medium">Similarity:</label>
     <input
@@ -73,14 +74,15 @@ export const SearchForm = () => (
       max="1"
       step="0.1"
       className="w-20 px-4 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300 text-mono"
-      defaultValue="0.5"
-      value="0.5"
+      defaultValue="0.4"
+      value={similarity}
     />
     <input
       type="text"
       name="query"
       className="flex-grow px-4 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300"
       placeholder="Enter your query"
+      value={query}
     />
     <button
       type="submit"
@@ -96,10 +98,11 @@ export const SearchResults = ({ results }: { results: SearchResult[] }) => {
     <div className="space-y-6 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-6">
       {results.map((result) => (
         <div key={result.id} className="flex flex-col p-4 border rounded-lg shadow-sm">
-          <div className="mb-2">
+          <div className="mb-2 flex justify-between items-center">
             <div className="inline-block px-2 py-1 bg-blue-400 text-white text-xs font-semibold rounded">
               {result.type}
             </div>
+            <div className="text-mono text-xs font-medium">{result.similarity ?? ""}</div>
           </div>
           {/* biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation> */}
           <div className="mb-4 flex-grow px-2 border-l-2 border-gray-100" dangerouslySetInnerHTML={{ __html: marked(result.content) as string }} />

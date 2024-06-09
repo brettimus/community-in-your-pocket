@@ -18,6 +18,7 @@ export const knowledge = pgTable('knowledge', {
   link: text('link'),
   embedding: vector('embedding', { dimensions: 1536 }),
   meta: jsonb('meta'),
+  sourceId: text('source_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

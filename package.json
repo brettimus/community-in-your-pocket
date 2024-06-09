@@ -8,7 +8,10 @@
     "db:seed": "tsx seed.ts",
     "embeddings:generate": "tsx embeddings/generate-openai.ts",
     "discord": "tsx data/discord.ts",
-    "embeddings:remove-duplicates": "tsx embeddings/remove-duplicates.ts"
+    "embeddings:remove-duplicates": "tsx embeddings/remove-duplicates.ts",
+    "embeddings:remove-duplicates-prefer-longer": "tsx embeddings/remove-duplicates-prefer-longer.ts",
+    "discord:update-source-ids": "tsx embeddings/update-source-ids.ts",
+    "discord:remove-undefined-content": "tsx embeddings/remove-undefined-content.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.9.3",

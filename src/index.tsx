@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { neon } from '@neondatabase/serverless';
 import { eq, cosineDistance, desc, gt, sql as magicSql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/neon-http';
-import { users, knowledge } from './db/schema';
+import { knowledge } from './db/schema';
 import { createEmbedding } from './embeddings';
 import OpenAI from 'openai';
 import { Layout, SearchForm, SearchResults } from './component';
@@ -14,57 +14,9 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>()
 
-app.get('/', (c) => {
-  return c.text('Hello Hono!')
-})
+// Basic UI
 
-app.get('/api/users', async (c) => {
-  const sql = neon(c.env.DATABASE_URL)
-  const db = drizzle(sql);
-
-  return c.json({
-    users: await db.select().from(users)
-  })
-})
-
-app.get('/knowledge/search', async (c) => {
-  const sql = neon(c.env.DATABASE_URL)
-  const db = drizzle(sql);
-  const query = c.req.query("query");
-  if (!query) {
-    return c.text("No query provided");
-  }
-  const client = new OpenAI({
-    apiKey: c.env.OPENAI_API_KEY,
-  });
-  const queryEmbedding = await createEmbedding(client, query);
-  const similarity = magicSql<number>`1 - (${cosineDistance(knowledge.embedding, queryEmbedding)})`;
-  const results = await db.select({
-    id: knowledge.id,
-    content: knowledge.content,
-    type: knowledge.type,
-    link: knowledge.link,
-    similarity: similarity,
-  }).from(knowledge).where(gt(similarity, 0.4))
-    .orderBy(desc(similarity)).limit(10);
-
-  return c.html(
-    <Layout>
-      <div className="max-w-6xl mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-6">Knowledge</h1>
-
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">Search</h2>
-          <SearchForm />
-        </div>
-
-        <SearchResults results={results} />
-      </div>
-    </Layout>
-  )
-});
-
-app.get('/knowledge', async (c) => {
+app.get('/', async (c) => {
   const sql = neon(c.env.DATABASE_URL)
   const db = drizzle(sql);
   const results = await db.select({
@@ -84,11 +36,56 @@ app.get('/knowledge', async (c) => {
           <SearchForm />
         </div>
 
+        <h2 className="text-2xl font-semibold mb-4">Examples</h2>
         <SearchResults results={results} />
       </div>
     </Layout>
   )
 });
+
+app.get('/knowledge/search', async (c) => {
+  const sql = neon(c.env.DATABASE_URL)
+  const db = drizzle(sql);
+
+  const query = c.req.query("query");
+  const similarityStr = c.req.query("similarity");
+  const similarityLimit = Number.parseFloat(similarityStr ?? "0.4") ?? 0.4;
+
+  if (!query) {
+    return c.text("No query provided");
+  }
+
+  const client = new OpenAI({
+    apiKey: c.env.OPENAI_API_KEY,
+  });
+  const queryEmbedding = await createEmbedding(client, query);
+  const similarityQuery = magicSql<number>`1 - (${cosineDistance(knowledge.embedding, queryEmbedding)})`;
+  const results = await db.select({
+    id: knowledge.id,
+    content: knowledge.content,
+    type: knowledge.type,
+    link: knowledge.link,
+    similarity: similarityQuery,
+  }).from(knowledge).where(gt(similarityQuery, similarityLimit))
+    .orderBy(desc(similarityQuery)).limit(10);
+
+  return c.html(
+    <Layout>
+      <div className="max-w-6xl mx-auto p-4">
+        <h1 className="text-3xl font-bold mb-6">Knowledge</h1>
+
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold mb-4">Search</h2>
+          <SearchForm query={query} similarity={similarityLimit} />
+        </div>
+
+        <SearchResults results={results} />
+      </div>
+    </Layout>
+  )
+});
+
+// API - for future use
 
 app.get('/api/knowledge', async (c) => {
   const sql = neon(c.env.DATABASE_URL)
@@ -103,7 +100,7 @@ app.get('/api/knowledge/discord', async (c) => {
   const sql = neon(c.env.DATABASE_URL)
   const db = drizzle(sql);
 
-  const results = await db.select().from(knowledge).where(eq(knowledge.type, 'discord'));
+  const results = await db.select().from(knowledge).where(eq(knowledge.type, 'discord')).limit(100);
 
   return c.json(results)
 })
@@ -112,7 +109,7 @@ app.get('/api/knowledge/github', async (c) => {
   const sql = neon(c.env.DATABASE_URL)
   const db = drizzle(sql);
 
-  const results = await db.select().from(knowledge).where(eq(knowledge.type, 'github'));
+  const results = await db.select().from(knowledge).where(eq(knowledge.type, 'github')).limit(100);
 
   return c.json(results)
 })
