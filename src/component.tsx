@@ -4,11 +4,11 @@ import { marked } from 'marked';
 const renderer = new marked.Renderer();
 
 renderer.heading = (text, level) => {
-  const baseClass = 'font-bold mb-2';
+  const baseClass = 'font-semibold mb-2 text-gray-800';
   const sizes = {
-    1: 'text-2xl',
-    2: 'text-xl',
-    3: 'text-lg',
+    1: 'text-2xl mt-2',
+    2: 'text-xl mt-1',
+    3: 'text-lg mt-1',
     4: 'text-base',
     5: 'text-base',
     6: 'text-base',
@@ -95,19 +95,24 @@ export const SearchResults = ({ results }: { results: SearchResult[] }) => {
   return (
     <div className="space-y-6 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-6">
       {results.map((result) => (
-        <div key={result.id} className="p-4 border rounded-lg shadow-sm">
-          <div className="inline-block px-2 py-1 bg-blue-500 text-white text-xs font-bold rounded mb-2">
-            {result.type}
-          </div>          {/* biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation> */}
-          <div className="mb-4" dangerouslySetInnerHTML={{ __html: marked(result.content) as string }} />
-          <a
-            href={result.link ?? "#"}
-            target="_blank"
-            rel="noreferrer"
-            className="text-blue-500 hover:underline"
-          >
-            Read more
-          </a>
+        <div key={result.id} className="flex flex-col p-4 border rounded-lg shadow-sm">
+          <div className="mb-2">
+            <div className="inline-block px-2 py-1 bg-blue-400 text-white text-xs font-semibold rounded">
+              {result.type}
+            </div>
+          </div>
+          {/* biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation> */}
+          <div className="mb-4 flex-grow px-2 border-l-2 border-gray-100" dangerouslySetInnerHTML={{ __html: marked(result.content) as string }} />
+          <div className="mt-auto">
+            <a
+              href={result.link ?? "#"}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-block px-2 py-1 bg-green-50 text-green-600 rounded hover:bg-green-200 transition-colors"
+            >
+              Read more
+            </a>
+          </div>
         </div>
       ))}
     </div>
