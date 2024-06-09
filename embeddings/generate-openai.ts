@@ -1,11 +1,12 @@
-import fs from "node:fs";
 import OpenAI from "openai";
 import { config } from 'dotenv';
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from 'drizzle-orm/neon-http';
 import * as schema from '../src/db/schema';
+import { prepareBasicDiscordMessages } from "./prepare-discord";
 
-type KnowledgeDatum = { content: string, link: string, type: "github" | "discord" }
+import type { KnowledgeDatum } from "./types";
+import { prepareGitHubIssues } from "./prepare-github";
 
 config({ path: '.dev.vars' });
 
@@ -21,38 +22,46 @@ const { knowledge } = schema;
 const sql = neon(process.env.DATABASE_URL);
 const db = drizzle(sql, { schema });
 
-// Main
+// === Main ===
 
+// GitHub issues
 const githubHonoIssues = 'data/honojs-hono.json';
 const githubHonoMiddlewareIssues = 'data/honojs-middleware.json';
 
+// Discord messages
 const discordHonoQuickQuestionsApril = 'data/hono-help-quick-questions-april.json';
 const discordHonoQuickQuestionsMay = 'data/hono-help-quick-questions-may.json';
+const discordHonoQuickQuestionsNov2023April2024 = 'data/hono-help-quick-questions-nov2023-april2024.json';
 
+const alreadyProcessed = new Set<string>();
+alreadyProcessed.add(githubHonoIssues);
+alreadyProcessed.add(githubHonoMiddlewareIssues);
+alreadyProcessed.add(discordHonoQuickQuestionsApril);
+alreadyProcessed.add(discordHonoQuickQuestionsMay);
+alreadyProcessed.add(discordHonoQuickQuestionsNov2023April2024);
 
 async function main() {
-  // await testCreateDiscordEmbeddings(discordHonoQuickQuestionsMay);
-  // await testCreateGitHubEmbeddings(githubHonoIssues);
-
-
-
   const start = Date.now();
   try {
-    await createGitHubEmbeddings(githubHonoMiddlewareIssues);
+    if (!alreadyProcessed.has(githubHonoMiddlewareIssues)) {
+      await createGitHubEmbeddings(githubHonoMiddlewareIssues);
+    }
   } catch (error) {
     console.log("Failed to create GitHub embeddings", error);
   }
   const endGitHub = Date.now();
   console.log(`GitHub Took ${endGitHub - start}ms`);
+
   const startDiscord = Date.now();
   try {
-    await createDiscordEmbeddings(discordHonoQuickQuestionsApril);
+    if (!alreadyProcessed.has(discordHonoQuickQuestionsApril)) {
+      await createDiscordEmbeddings(discordHonoQuickQuestionsNov2023April2024);
+    }
   } catch (error) {
     console.log("Failed to create Discord embeddings", error);
   }
   const end = Date.now();
 
-  console.log(`GitHub Took ${endGitHub - start}ms`);
   console.log(`Discord Took ${end - startDiscord}ms`);
   console.log(`All embeddings Took ${end - start}ms`);
 }
@@ -79,7 +88,7 @@ async function createDiscordEmbeddings(filename?: string) {
     return;
   }
 
-  const messages = prepareDiscordMessages(filename);
+  const messages = prepareBasicDiscordMessages(filename);
 
   for (const message of messages) {
     await createKnowledge(message);
@@ -87,49 +96,6 @@ async function createDiscordEmbeddings(filename?: string) {
 }
 
 // Helpers
-
-function readHonoIssues(filename: string) {
-  const issues = JSON.parse(fs.readFileSync(filename, 'utf8'));
-  return issues;
-}
-
-function transformIssue(issue: { title: string, body: string, html_url: string }) {
-  const link = issue.html_url;
-  const content = `# ${issue.title}\n${issue.body}`;
-
-  return {
-    content,
-    link,
-    type: "github",
-  }
-}
-
-function prepareGitHubIssues(filename: string) {
-  const issues = readHonoIssues(filename);
-  return issues.map(transformIssue) // as { content: string, link: string, type: "github" }[];
-}
-
-function readDiscordMessages(filename: string) {
-  const discordExport = JSON.parse(fs.readFileSync(filename, 'utf8'));
-  const channelId = discordExport.channel.id;
-  const messages = discordExport.messages;
-  const basicMessages = messages.filter(message => message?.type === "Default");
-  const guildId = discordExport.guild.id;
-  return { channelId, guildId, basicMessages };
-}
-
-function transformDiscordMessage({ channelId, guildId, }: { channelId: string, guildId: string }, message: { id: string; content: string }) {
-  return {
-    link: `https://discord.com/channels/${guildId}/${channelId}/${message.id}`,
-    content: message.content,
-    type: "discord",
-  }
-}
-
-function prepareDiscordMessages(filename: string) {
-  const { channelId, guildId, basicMessages } = readDiscordMessages(filename);
-  return basicMessages.map(m => transformDiscordMessage({channelId, guildId}, m)) as Array<{ content: string; link: string; type: "discord" }>;
-}
 
 async function createEmbedding(input: string) {
   const openai = new OpenAI();
@@ -154,6 +120,9 @@ function saveEmbedding(issueContent: string, knowledgeType: "github" | "discord"
   })
 }
 
+/**
+ * Add database record
+ */
 async function createKnowledge(datum: KnowledgeDatum, shouldLog = false) {
   const { content, link, type: knowledgeType } = datum;
   const embedding = await createEmbedding(content);
@@ -179,7 +148,7 @@ Embedding: ${embedding.slice(0, 5).join(', ')}...
 }
 
 
-// Quick Tests
+// Quick tests before you try the whole shebang
 
 async function testCreateGitHubEmbeddings(filename: string) {
   const issues = prepareGitHubIssues(filename);
@@ -191,7 +160,7 @@ async function testCreateGitHubEmbeddings(filename: string) {
 }
 
 async function testCreateDiscordEmbeddings(filename: string) {
-  const messages = prepareDiscordMessages(filename);
+  const messages = prepareBasicDiscordMessages(filename);
   const testSlice = messages.slice(0, 10);
 
   for (const message of testSlice) {

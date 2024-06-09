@@ -6,12 +6,30 @@ const dmsNovApril = readDiscordMessages('data/hono-help-quick-questions-nov2023-
 
 const allMessages = [...dmsApril.messages, ...dmsMay.messages, ...dmsNovApril.messages];
 
-console.log(allMessages.length);
-console.log(allMessages.filter(m => !m.type))
+console.log("All messages count: ", allMessages.length);
 
 const uniqueTypes = getUniqueMessageTypes(allMessages);
+console.log("Types:", uniqueTypes);
 
-console.log(uniqueTypes);
+const basics = allMessages.filter(m => m.type === "Default");
+console.log("Basics count:", basics.length)
+console.log("Basics preview", basics.slice(0, 10).map(m => {
+  return {
+    id: m.id,
+    refId: m.reference?.messageId
+  }
+}))
+
+const replies = allMessages.filter(m => m.type === "Reply");
+console.log("Replies count:", replies.length)
+console.log("Replies preview", replies.slice(0, 10).map(m => {
+  return {
+    id: m.id,
+    reference: m.reference,
+    // refId: m.reference?.messageId
+  }
+}))
+
 
 function getUniqueMessageTypes(messages: { type: string}[] ) {
   const types = messages.map(message => message.type);
