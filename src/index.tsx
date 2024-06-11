@@ -49,7 +49,7 @@ app.get('/knowledge/search', async (c) => {
 
   const query = c.req.query("query");
   const similarityStr = c.req.query("similarity");
-  const similarityLimit = Number.parseFloat(similarityStr ?? "0.4") ?? 0.4;
+  const similarityLimit = Number.parseFloat(similarityStr || "0.4") ?? 0.4;
 
   if (!query) {
     return c.text("No query provided");
